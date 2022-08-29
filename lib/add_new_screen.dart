@@ -12,7 +12,7 @@ class Data {
 
 class AddNewJob extends StatelessWidget {
   TextEditingController controller1 = TextEditingController();
-  TextEditingController controller2 = TextEditingController();
+  
 
   @override
   Widget build(BuildContext context) {
@@ -24,18 +24,12 @@ class AddNewJob extends StatelessWidget {
           children: [
             TextField(
               controller: controller1,
-            ),
-            TextField(
-              controller: controller2,
-            ),
+            ),            
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(
                   context,
-                  Data(
-                    textOne: controller1.text,
-                    textTwo: controller2.text,
-                  ),
+                  controller1.text  
                 );
               },
               child: const Text("Save.."),

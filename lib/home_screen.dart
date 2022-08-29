@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:tech_idara_app/add_new_screen.dart';
 
@@ -10,7 +9,7 @@ class HomePage extends StatefulWidget {
 }
 
 class HomePageState extends State<HomePage> {
-  List<Data> items = [];
+  List<String> items = [];
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -18,21 +17,15 @@ class HomePageState extends State<HomePage> {
         title: const Text('Home Page'),
       ),
       body: items.isNotEmpty
-          ? ListView.builder(
-              itemCount: items.length,
-              itemBuilder: (context, index) {
-                return itemWidget(context, index);
-              },
+          ? ListView(
+              children: items.map((strings) => itemWidget(strings)).toList(),
             )
           : const Center(
               child: Text("Items not found"),
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // setState(() {
-          //   items.add("Hello");
-          // });
-          Navigator.push<Data>(
+          Navigator.push<String>(
             context,
             MaterialPageRoute(
               builder: (context) => AddNewJob(),
@@ -46,7 +39,7 @@ class HomePageState extends State<HomePage> {
     );
   }
 
-  Widget itemWidget(BuildContext context, int index) {
+  Widget itemWidget(String text) {
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Card(
@@ -59,18 +52,17 @@ class HomePageState extends State<HomePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(items[index].textOne),
-                    Text(items[index].textTwo),
+                    Text(text),
                   ],
                 ),
               ),
-              IconButton(
-                  onPressed: () {
-                    setState(() {
-                      items.removeAt(index);
-                    });
-                  },
-                  icon: const Icon(Icons.delete))
+              // IconButton(
+              //     onPressed: () {
+              //       // setState(() {
+              //       //   items.removeAt(index);
+              //       // });
+              //     },
+              //     icon: const Icon(Icons.delete))
             ],
           ),
         ),
