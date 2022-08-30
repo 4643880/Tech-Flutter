@@ -62,23 +62,16 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       home: HomePage(),
-      // onGenerateRoute: (settings) {
-
-      //   Map<String, Widget> pages = {
-      //     "home/": const HomePage(),
-      //     "about/": const AboutPage(),
-      //   };
-
-      //   return MaterialPageRoute(
-      //     builder: (context) => pages[settings.name]!
-      //   );
-
-      // },
-
-      // routes: {
-      //   "about/": (context) => const AboutPage(),
-      //   "home/": (context) => HomePage(),
-      // },
+      onGenerateRoute: (settings) {
+        final args = settings.arguments;
+        if (settings.name == "about/") {
+          if (args is Map<String, String>) {
+            return MaterialPageRoute(
+              builder: (context) => AboutPage(map: args),
+            );
+          }
+        }
+      },
     );
   }
 }
@@ -108,29 +101,14 @@ class _HomePageState extends State<HomePage> {
             ),
             ElevatedButton(
                 onPressed: () {
-                  // Easy Example 1
-                  // Sending Data Forward & Receving Data back with push
-                  Navigator.push<String>(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          const AboutPage(title: "Sending Data Forward"),
-                    ),
-                  ).then((value) {
+                  Navigator.pushNamed(context, "about/", arguments: {
+                    "title": "this is title",
+                    "desc": "this is desc",
+                  }).then((value) {
                     setState(() {
-                      gettingBack = value;
+                      gettingBack = value as String;
                     });
                   });
-
-                  // Navigator.pushNamed(context, "about/", arguments: {
-                  //   "title": "how are you!",
-                  //   "desc": "I am fine "
-                  // }).then((value) {
-                  //   value?.log();
-                  //   setState(() {
-                  //     gettingBack = value as String?;
-                  //   });
-                  // });
                 },
                 child: const Text("Go to About Page",
                     style: TextStyle(fontSize: 25))),
@@ -142,9 +120,9 @@ class _HomePageState extends State<HomePage> {
 }
 
 class AboutPage extends StatelessWidget {
-  final String? title;
-  final String? desc;
-  const AboutPage({Key? key, this.title, this.desc}) : super(key: key);
+  final Map map;
+
+  const AboutPage({Key? key, required this.map}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -158,8 +136,8 @@ class AboutPage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text("Data of About Page", style: TextStyle(fontSize: 25)),
-            Text(title ?? "", style: const TextStyle(fontSize: 25)),
-            Text(desc ?? ""),
+            Text(map["title"].toString(), style: const TextStyle(fontSize: 25)),
+            Text(map["desc"].toString()),
             ElevatedButton(
                 style: ButtonStyle(
                   backgroundColor: MaterialStateProperty.all(Colors.red),
