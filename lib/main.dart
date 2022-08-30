@@ -1,6 +1,7 @@
-import 'dart:developer' as devtools show log;
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:tech_idara_app/job_post_model.dart';
+
+import 'dart:developer' as devtools show log;
 
 extension Log on Object {
   void log() => devtools.log(toString());
@@ -10,170 +11,163 @@ void main() {
   runApp(const MyApp());
 }
 
+// We use Future for Asynchronous Tasks
+testIt1() async {
+  print("Step 1");
+  Future(
+    () {
+      print("Step 2");
+    },
+  );
+
+  // then is try block & .catchError is catch block
+  // If Future executes successfully after that then will get value
+  Future.delayed(
+    const Duration(seconds: 2),
+    () => "Wait Completed Successfully After 2 seconds",
+  ).then((value) => print(value));
+
+  // Then will not execute due to exception now catching exception
+  Future.delayed(
+    const Duration(seconds: 2),
+    () => throw "Wait Completed Exception",
+  ).then((value) => print(value)).catchError((e) => print(e));
+
+  // If Future executes successfully after that then will get value
+  await Future.delayed(
+    const Duration(seconds: 5),
+    () => "Wait Completed Successfully 5 seconds",
+  ).then((value) => print(value));
+
+  print("Step-3");
+  print("Database Opened");
+}
+
+testIt2() async {
+  print("Before Opening DB");
+  await testIt1();
+  print("DB Opened Successfully");
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    testIt2();
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const HomePage(),
+      home: HomePage(),
+      // onGenerateRoute: (settings) {
+
+      //   Map<String, Widget> pages = {
+      //     "home/": const HomePage(),
+      //     "about/": const AboutPage(),
+      //   };
+
+      //   return MaterialPageRoute(
+      //     builder: (context) => pages[settings.name]!
+      //   );
+
+      // },
+
+      // routes: {
+      //   "about/": (context) => const AboutPage(),
+      //   "home/": (context) => HomePage(),
+      // },
     );
   }
 }
 
 class HomePage extends StatefulWidget {
-  const HomePage({Key? key}) : super(key: key);
-
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  TextEditingController titleController = TextEditingController();
-  TextEditingController descController = TextEditingController();
-  ScrollController _scrollController = ScrollController();
-
-  List<JobPost> myList = [];
-
-  bool scrollLimit = false;
-  int? editIndex;
-
-  @override
-  void initState() {
-    _scrollController.addListener(() {
-      if (_scrollController.offset > 100) {
-        setState(() {
-          scrollLimit = true;
-        });
-      } else {
-        setState(() {
-          scrollLimit = false;
-        });
-      }
-      print(_scrollController.offset);
-    });
-  }
+  String? gettingBack;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Home Listing'),
+        title: const Text('Home Page'),
       ),
-      body: Container(
+      body: Center(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              height: 200,
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(32.0),
-                      child: Column(
-                        children: [
-                          TextField(
-                            controller: titleController,
-                            decoration:
-                                const InputDecoration(labelText: "Job title"),
-                          ),
-                          TextField(
-                            controller: descController,
-                            decoration: const InputDecoration(
-                                labelText: "Job Description"),
-                          ),
-                          ElevatedButton(
-                            onPressed: () {
-                              if (editIndex == null) {
-                                setState(() {
-                                  JobPost obj = JobPost(
-                                    title: titleController.text,
-                                    desc: descController.text,
-                                  );
-                                  myList.add(obj);
-                                  [titleController, descController].forEach(
-                                    (element) => element.clear(),
-                                  );
-                                });
-                              } else {
-                                final existingObject = myList[editIndex!];
-                                existingObject.title = titleController.text;
-                                existingObject.desc = descController.text;
-
-                                setState(() {
-                                  myList[editIndex!] = existingObject;
-                                  editIndex = null;
-                                  [titleController, descController].forEach(
-                                    (element) => element.clear(),
-                                  );
-                                });
-                              }
-                            },
-                            child: Text(
-                                "${editIndex == null ? "Submit" : "Update"} "),
-                          ),
-                        ],
-                      ),
+            const Text("Data of Home Page", style: TextStyle(fontSize: 25)),
+            Text(
+              gettingBack ?? "",
+              style: const TextStyle(fontSize: 25),
+            ),
+            ElevatedButton(
+                onPressed: () {
+                  // Easy Example 1
+                  // Sending Data Forward & Receving Data back with push
+                  Navigator.push<String>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          const AboutPage(title: "Sending Data Forward"),
                     ),
-                  ],
+                  ).then((value) {
+                    setState(() {
+                      gettingBack = value;
+                    });
+                  });
+
+                  // Navigator.pushNamed(context, "about/", arguments: {
+                  //   "title": "how are you!",
+                  //   "desc": "I am fine "
+                  // }).then((value) {
+                  //   value?.log();
+                  //   setState(() {
+                  //     gettingBack = value as String?;
+                  //   });
+                  // });
+                },
+                child: const Text("Go to About Page",
+                    style: TextStyle(fontSize: 25))),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class AboutPage extends StatelessWidget {
+  final String? title;
+  final String? desc;
+  const AboutPage({Key? key, this.title, this.desc}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.red,
+        title: const Text('About Page', style: TextStyle(fontSize: 25)),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text("Data of About Page", style: TextStyle(fontSize: 25)),
+            Text(title ?? "", style: const TextStyle(fontSize: 25)),
+            Text(desc ?? ""),
+            ElevatedButton(
+                style: ButtonStyle(
+                  backgroundColor: MaterialStateProperty.all(Colors.red),
                 ),
-              ),
-            ),
-            Expanded(
-              flex: 2,
-              child: AnimatedContainer(
-                duration: Duration(microseconds: 10),
-                color: scrollLimit ? Colors.amber : Colors.white,
-                child: ListView.builder(
-                  controller: _scrollController,
-                  itemCount: myList.length,
-                  itemBuilder: (context, index) {
-                    return Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Card(
-                        elevation: 10,
-                        child: ListTile(
-                          title: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  "Index No# $index ${myList[index].title}",
-                                ),
-                              ),
-                              IconButton(
-                                onPressed: () {
-                                  setState(() {
-                                    myList.removeAt(index);
-                                  });
-                                },
-                                icon: const Icon(Icons.delete),
-                              ),
-                              IconButton(
-                                onPressed: () {
-                                  setState(() {
-                                    titleController.text = myList[index].title;
-                                    descController.text = myList[index].desc;
-                                    editIndex = index;
-                                    editIndex.toString().log();
-                                  });
-                                },
-                                icon: const Icon(Icons.edit),
-                              )
-                            ],
-                          ),
-                          subtitle: Text(myList[index].desc),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
+                onPressed: () {
+                  Navigator.pop<String>(context, "Sending Data Back");
+                },
+                child: const Text("Go to Home Page")),
           ],
         ),
       ),
