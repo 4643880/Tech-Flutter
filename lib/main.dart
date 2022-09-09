@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'dart:convert' as convert;
 import 'dart:developer' as devtools show log;
 
+import 'package:tech_idara_app/todo_model.dart';
+
 extension Log on Object {
   void log() => devtools.log(toString());
 }
@@ -24,7 +26,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: HomePage(),
+      home: const HomePage(),
     );
   }
 }
@@ -37,43 +39,23 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  String? nameFromApi = "";
+  List<Todo> myTodoList = [];
+  bool isLoading = false;
   // Example 1 with http Package
   callApi() async {
     try {
       setState(() {
-        nameFromApi = null;
+        isLoading = true;
       });
-      var url = Uri.https("api.github.com", "/users/aizazisonline");
+      var url = Uri.https("63199b5b6b4c78d91b3f0a2f.mockapi.io", "/api/todos");
       var response = await http.get(url);
-      var jsonResponse =
-          convert.jsonDecode(response.body) as Map<String, dynamic>;
-      jsonResponse["name"].toString().log();
-      setState(() {
-        nameFromApi = jsonResponse["name"];
-      });
-    } catch (e) {
-      e.log();
-    }
-  }
+      var jsonResponse = convert.jsonDecode(response.body) as List<dynamic>;
+      jsonResponse[0]["title"].toString().log();
 
-  // Example 2 without http Package
-  parseJson() async {
-    try {
       setState(() {
-        nameFromApi = null;
-      });
-      const String url = "https://api.github.com/users/ishaquehassan";
-      final result = await HttpClient()
-          .getUrl(Uri.parse(url))
-          .then((request) => request.close())
-          .then((response) => response.transform(utf8.decoder).join())
-          .then(
-              (jsonString) => json.decode(jsonString) as Map<String, dynamic>);
-      // .then((json) => json.map((map) => Person.fromJson(map)));
-      result["name"].toString().log();
-      setState(() {
-        nameFromApi = result["name"];
+        // Returning Data from Model Bacause I want to access here & assigning to myList
+        myTodoList = Todo.fromJson(jsonResponse);
+        isLoading = false;
       });
     } catch (e) {
       e.log();
@@ -81,30 +63,31 @@ class _HomePageState extends State<HomePage> {
   }
 
   @override
+  void initState() {
+    callApi();
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('API Sample'),
+        title: const Text('Mock API Practice With Model'),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (nameFromApi != null)
-              Text(
-                nameFromApi!,
-                style: const TextStyle(fontSize: 30),
-              ),
-            if (nameFromApi == null) const CircularProgressIndicator(),
-            ElevatedButton(
-              onPressed: callApi,
-              child: const Text("Call API 1"),
-            ),
-            ElevatedButton(
-              onPressed: parseJson,
-              child: const Text("Call API 2"),
-            ),
-          ],
+        child: Container(
+          height: MediaQuery.of(context).size.height,
+          child: (isLoading == true)
+              ? const Center(child: CircularProgressIndicator())
+              : ListView.builder(
+                  itemCount: myTodoList.length,
+                  itemBuilder: (context, index) {
+                    return ListTile(
+                      title: Text(myTodoList[index].title.toString()),
+                      subtitle: Text(myTodoList[index].description.toString()),
+                    );
+                  },
+                ),
         ),
       ),
     );
