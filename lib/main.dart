@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert' as convert;
 import 'dart:developer' as devtools show log;
 
-import 'package:tech_idara_app/todo_model.dart';
+import 'package:tech_idara_app/models/book.dart';
 
 extension Log on Object {
   void log() => devtools.log(toString());
@@ -39,7 +39,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  List<Todo> myTodoList = [];
+  BookResponse? obj;
   bool isLoading = false;
   // Example 1 with http Package
   callApi() async {
@@ -47,14 +47,20 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         isLoading = true;
       });
-      var url = Uri.https("63199b5b6b4c78d91b3f0a2f.mockapi.io", "/api/todos");
+      var url = Uri.https(
+          "www.googleapis.com", "/books/v1/volumes", {"q": "flutter"});
       var response = await http.get(url);
-      var jsonResponse = convert.jsonDecode(response.body) as List<dynamic>;
-      jsonResponse[0]["title"].toString().log();
+      // http always get response in string then we decode it
+      var stringReponse = response.body;
+      // stringReponse.log();
+      var decodedJson =
+          convert.jsonDecode(stringReponse) as Map<String, dynamic>;
+      // decodedJson.log();
+      // decodedJson["totalItems"].toString().log();
 
       setState(() {
         // Returning Data from Model Bacause I want to access here & assigning to myList
-        myTodoList = Todo.fromJson(jsonResponse);
+        obj = BookResponse.fromJson(decodedJson);
         isLoading = false;
       });
     } catch (e) {
@@ -70,9 +76,12 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    // callApi();
+    obj?.totalItems.toString().log();
+    obj?.items?.first.volumeInfo?.authors.toString().log();
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mock API Practice With Model'),
+        title: const Text('Complex API'),
       ),
       body: Center(
         child: Container(
@@ -80,11 +89,17 @@ class _HomePageState extends State<HomePage> {
           child: (isLoading == true)
               ? const Center(child: CircularProgressIndicator())
               : ListView.builder(
-                  itemCount: myTodoList.length,
+                  itemCount: obj?.items?.length,
                   itemBuilder: (context, index) {
                     return ListTile(
-                      title: Text(myTodoList[index].title.toString()),
-                      subtitle: Text(myTodoList[index].description.toString()),
+                      title: Text(obj?.items![index].volumeInfo?.title ?? ""),
+                      leading: Image.network(obj?.items![index].volumeInfo
+                              ?.imageLinks?.thumbnail ??
+                          ""),
+                      subtitle: Text(obj
+                              ?.items![index].volumeInfo?.authors?.first
+                              .toString() ??
+                          ""),
                     );
                   },
                 ),
