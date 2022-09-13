@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert' as convert;
 import 'dart:developer' as devtools show log;
 
-import 'package:tech_idara_app/models/book.dart';
+import 'package:tech_idara_app/models/user_model.dart';
 
 extension Log on Object {
   void log() => devtools.log(toString());
@@ -17,7 +17,6 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -31,192 +30,131 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class HomePage extends StatefulWidget {
+class HomePage extends StatelessWidget {
   const HomePage({Key? key}) : super(key: key);
 
-  @override
-  State<HomePage> createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage> {
-  BookResponse? obj;
-  bool isLoading = false;
-
-  TextEditingController controller = TextEditingController();
-  String get searchKeyword => controller.text;
-  // Example 1 with http Package
-  callApi() async {
+  Future<GithubUser> callApi() async {
     try {
-      setState(() {
-        isLoading = true;
-      });
-      var url = Uri.https(
-          "www.googleapis.com", "/books/v1/volumes", {"q": "$searchKeyword"});
+      var url = Uri.https("api.github.com", "/users/aizazisonline");
       var response = await http.get(url);
-      // http always get response in string then we decode it
       var stringReponse = response.body;
-      // stringReponse.log();
       var decodedJson =
           convert.jsonDecode(stringReponse) as Map<String, dynamic>;
-      // decodedJson.log();
-      // decodedJson["totalItems"].toString().log();
+      decodedJson.log();
 
-      setState(() {
-        obj = BookResponse.fromJson(decodedJson);
-        isLoading = false;
-      });
+      final result = GithubUser.fromJson(decodedJson);
+      return result;
     } catch (e) {
-      e.log();
-      setState(() {
-        obj = null;
-        isLoading = false;
-      });
+      "Something went wrong...".log();
+      throw "something went wrong in Api";
     }
   }
 
-  // @override
-  // void initState() {
-  //   callApi();
-  //   super.initState();
-  // }
-
   @override
   Widget build(BuildContext context) {
-    // callApi();
-    // obj?.totalItems.toString().log();
-    // obj?.items?.first.volumeInfo?.authors.toString().log();
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Complex API'),
-      ),
+      appBar: AppBar(title: const Text("API With Future Builder")),
       body: Center(
-        child: Container(
-            height: MediaQuery.of(context).size.height,
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(32.0),
-                  child: Row(
+        child: FutureBuilder<GithubUser>(
+          future: callApi(),
+          builder: (context, snapshot) {
+            switch (snapshot.connectionState) {
+              case ConnectionState.none:
+                return const CircularProgressIndicator();
+              // return const Text("none");
+              case ConnectionState.waiting:
+                return const Text("waiting");
+
+              case ConnectionState.active:
+                return const Text("active");
+
+              case ConnectionState.done:
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Expanded(
-                        child: TextField(
-                          controller: controller,
-                          decoration: const InputDecoration(
-                            labelText: "Enter Book Name",
-                          ),
-                        ),
+                      Text(snapshot.data?.name ?? ""),
+                      Image.network(
+                        snapshot.data?.avatarUrl ?? "",
+                        height: 100,
                       ),
                       ElevatedButton(
-                        onPressed: callApi,
-                        child: const Text("Search"),
-                      ),
-                    ],
-                  ),
-                ),
-                // if (isLoading == false) const Text("No items Found"),
-                if (!isLoading)
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: obj?.items?.length ?? 0,
-                      itemBuilder: (context, index) {
-                        return ListTile(
-                          onTap: () {
+                          onPressed: () {
                             Navigator.of(context).push(MaterialPageRoute(
-                              builder: (context) => BookDetail(
-                                  bookFromList: (obj?.items![index])!),
+                              builder: (context) => FormDemo(),
                             ));
                           },
-                          title:
-                              Text(obj?.items?[index].volumeInfo?.title ?? ""),
-                          leading: Image.network(obj?.items?[index].volumeInfo
-                                  ?.imageLinks?.thumbnail ??
-                              ""),
-                          subtitle: Text(obj
-                                  ?.items?[index].volumeInfo?.authors?.first
-                                  .toString() ??
-                              ""),
-                        );
-                      },
-                    ),
+                          child: const Text("Go to Form Page"))
+                    ],
                   ),
-                if (isLoading) const Center(child: CircularProgressIndicator()),
-              ],
-            )),
+                );
+              default:
+                return const CircularProgressIndicator();
+            }
+          },
+        ),
       ),
     );
   }
 }
 
-class BookDetail extends StatefulWidget {
-  // Main Door Of House getting value through constructor
-  final Book bookFromList;
-  const BookDetail({Key? key, required this.bookFromList}) : super(key: key);
+// Column of TextFields wrap with Form Widget
+// TextFields replace with TextFormField Widget because it has validator property
 
-  @override
-  State<BookDetail> createState() => _BookDetailState();
-}
+// How Form will understand that you have written validator and it should trigger on onPressed  [ Form.of(context)?.validate(); ]
 
-class _BookDetailState extends State<BookDetail> {
-  late Book book;
-  bool isLoading = false;
-  callApiForDetails() async {
-    try {
-      setState(() {
-        isLoading = true;
-      });
-      var url = Uri.https(
-        "www.googleapis.com",
-        "/books/v1/volumes/${book.id}",
-      );
-      var response = await http.get(url);
-      // http always get response in string then we decode it
-      var stringReponse = response.body;
-      // stringReponse.log();
-      var decodedJson =
-          convert.jsonDecode(stringReponse) as Map<String, dynamic>;
-      // decodedJson.log();
-      // decodedJson["totalItems"].toString().log();
-
-      setState(() {
-        book = Book.fromJson(json: decodedJson);
-        isLoading = false;
-      });
-    } catch (e) {
-      e.log();
-      "Something went Wrong".log();
-      setState(() {
-        // Assigning Old Object Of the Main First page
-        book = widget.bookFromList;
-        isLoading = false;
-      });
-    }
-  }
-
-  @override
-  void initState() {
-    book = widget.bookFromList;
-    callApiForDetails();
-    super.initState();
-  }
+class FormDemo extends StatelessWidget {
+  TextEditingController userNameController = TextEditingController();
+  TextEditingController passwordController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Book Details"),
+        title: const Text("Form Demo"),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(book.volumeInfo?.title ?? ""),
-            Image.network(
-              book.volumeInfo?.imageLinks?.extraLarge ??
-                  book.volumeInfo?.imageLinks?.thumbnail ??
-                  "",
-            ),
-            if (isLoading) const CircularProgressIndicator()
-          ],
+      body: Form(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            children: [
+              TextFormField(
+                validator: (value) {
+                  var notNullValue = value ?? "";
+                  if (notNullValue.isEmpty && !notNullValue.contains("@")) {
+                    return "Please Enter Valid Email";
+                  }
+                },
+                controller: userNameController,
+              ),
+              TextFormField(
+                controller: passwordController,
+                validator: (value) {
+                  var notNullValue = value ?? "";
+                  if (notNullValue.isEmpty) {
+                    return "Password Can't be Empty";
+                  } else if (notNullValue.length < 8) {
+                    return "Password length should be at least 8";
+                  }
+                  return null;
+                },
+              ),
+              Builder(builder: (context) {
+                return ElevatedButton(
+                  onPressed: () {
+                    // This return true or false
+                    var getBoolValue = Form.of(context)?.validate();
+                    if (getBoolValue ?? false) {
+                      "Form Passed".log();
+                    } else {
+                      "Form Failed".log();
+                    }
+                  },
+                  child: const Text("Login"),
+                );
+              }),
+            ],
+          ),
         ),
       ),
     );
