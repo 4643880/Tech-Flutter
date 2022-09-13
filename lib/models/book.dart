@@ -15,7 +15,6 @@ class BookResponse {
   }
 }
 
-
 class Book {
   String? id;
   VolumeInfo? volumeInfo;
@@ -46,10 +45,12 @@ class VolumeInfo {
 
 class ImageLinks {
   String? thumbnail;
+  String? extraLarge;
 
   ImageLinks({this.thumbnail});
 
   ImageLinks.fromJson({required Map<String, dynamic> json}) {
     thumbnail = json["thumbnail"];
+    extraLarge = json["extraLarge"];
   }
 }

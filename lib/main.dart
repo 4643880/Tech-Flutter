@@ -41,6 +41,9 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   BookResponse? obj;
   bool isLoading = false;
+
+  TextEditingController controller = TextEditingController();
+  String get searchKeyword => controller.text;
   // Example 1 with http Package
   callApi() async {
     try {
@@ -48,7 +51,7 @@ class _HomePageState extends State<HomePage> {
         isLoading = true;
       });
       var url = Uri.https(
-          "www.googleapis.com", "/books/v1/volumes", {"q": "flutter"});
+          "www.googleapis.com", "/books/v1/volumes", {"q": "$searchKeyword"});
       var response = await http.get(url);
       // http always get response in string then we decode it
       var stringReponse = response.body;
@@ -59,50 +62,161 @@ class _HomePageState extends State<HomePage> {
       // decodedJson["totalItems"].toString().log();
 
       setState(() {
-        // Returning Data from Model Bacause I want to access here & assigning to myList
         obj = BookResponse.fromJson(decodedJson);
         isLoading = false;
       });
     } catch (e) {
       e.log();
+      setState(() {
+        obj = null;
+        isLoading = false;
+      });
     }
   }
 
-  @override
-  void initState() {
-    callApi();
-    super.initState();
-  }
+  // @override
+  // void initState() {
+  //   callApi();
+  //   super.initState();
+  // }
 
   @override
   Widget build(BuildContext context) {
     // callApi();
-    obj?.totalItems.toString().log();
-    obj?.items?.first.volumeInfo?.authors.toString().log();
+    // obj?.totalItems.toString().log();
+    // obj?.items?.first.volumeInfo?.authors.toString().log();
     return Scaffold(
       appBar: AppBar(
         title: const Text('Complex API'),
       ),
       body: Center(
         child: Container(
-          height: MediaQuery.of(context).size.height,
-          child: (isLoading == true)
-              ? const Center(child: CircularProgressIndicator())
-              : ListView.builder(
-                  itemCount: obj?.items?.length,
-                  itemBuilder: (context, index) {
-                    return ListTile(
-                      title: Text(obj?.items![index].volumeInfo?.title ?? ""),
-                      leading: Image.network(obj?.items![index].volumeInfo
-                              ?.imageLinks?.thumbnail ??
-                          ""),
-                      subtitle: Text(obj
-                              ?.items![index].volumeInfo?.authors?.first
-                              .toString() ??
-                          ""),
-                    );
-                  },
+            height: MediaQuery.of(context).size.height,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(32.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: controller,
+                          decoration: const InputDecoration(
+                            labelText: "Enter Book Name",
+                          ),
+                        ),
+                      ),
+                      ElevatedButton(
+                        onPressed: callApi,
+                        child: const Text("Search"),
+                      ),
+                    ],
+                  ),
                 ),
+                // if (isLoading == false) const Text("No items Found"),
+                if (!isLoading)
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: obj?.items?.length ?? 0,
+                      itemBuilder: (context, index) {
+                        return ListTile(
+                          onTap: () {
+                            Navigator.of(context).push(MaterialPageRoute(
+                              builder: (context) => BookDetail(
+                                  bookFromList: (obj?.items![index])!),
+                            ));
+                          },
+                          title:
+                              Text(obj?.items?[index].volumeInfo?.title ?? ""),
+                          leading: Image.network(obj?.items?[index].volumeInfo
+                                  ?.imageLinks?.thumbnail ??
+                              ""),
+                          subtitle: Text(obj
+                                  ?.items?[index].volumeInfo?.authors?.first
+                                  .toString() ??
+                              ""),
+                        );
+                      },
+                    ),
+                  ),
+                if (isLoading) const Center(child: CircularProgressIndicator()),
+              ],
+            )),
+      ),
+    );
+  }
+}
+
+class BookDetail extends StatefulWidget {
+  // Main Door Of House getting value through constructor
+  final Book bookFromList;
+  const BookDetail({Key? key, required this.bookFromList}) : super(key: key);
+
+  @override
+  State<BookDetail> createState() => _BookDetailState();
+}
+
+class _BookDetailState extends State<BookDetail> {
+  late Book book;
+  bool isLoading = false;
+  callApiForDetails() async {
+    try {
+      setState(() {
+        isLoading = true;
+      });
+      var url = Uri.https(
+        "www.googleapis.com",
+        "/books/v1/volumes/${book.id}",
+      );
+      var response = await http.get(url);
+      // http always get response in string then we decode it
+      var stringReponse = response.body;
+      // stringReponse.log();
+      var decodedJson =
+          convert.jsonDecode(stringReponse) as Map<String, dynamic>;
+      // decodedJson.log();
+      // decodedJson["totalItems"].toString().log();
+
+      setState(() {
+        book = Book.fromJson(json: decodedJson);
+        isLoading = false;
+      });
+    } catch (e) {
+      e.log();
+      "Something went Wrong".log();
+      setState(() {
+        // Assigning Old Object Of the Main First page
+        book = widget.bookFromList;
+        isLoading = false;
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    book = widget.bookFromList;
+    callApiForDetails();
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Book Details"),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(book.volumeInfo?.title ?? ""),
+            Image.network(
+              book.volumeInfo?.imageLinks?.extraLarge ??
+                  book.volumeInfo?.imageLinks?.thumbnail ??
+                  "",
+            ),
+            if (isLoading) const CircularProgressIndicator()
+          ],
         ),
       ),
     );
