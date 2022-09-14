@@ -1,14 +1,46 @@
 import 'package:flutter/material.dart';
+import 'dart:developer' as devtools show log;
 
 void main() {
   runApp(const MyApp());
 }
 
-class MyStateWidget extends InheritedWidget {
-  final String userName = "Aizaz";
+extension Log on Object {
+  void log() => devtools.log(toString());
+}
 
-  const MyStateWidget({
+class MyStatefulWidget extends StatefulWidget {
+  final Widget child;
+  const MyStatefulWidget({Key? key, required this.child}) : super(key: key);
+
+  @override
+  State<MyStatefulWidget> createState() => MyStatefulWidgetState();
+}
+
+class MyStatefulWidgetState extends State<MyStatefulWidget> {
+  String userName = "Haider";
+
+  updateName(String newName) {
+    setState(() {
+      userName = newName;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MyInheritedWidget(
+      state: this,
+      child: widget.child,
+    );
+  }
+}
+
+class MyInheritedWidget extends InheritedWidget {
+  final MyStatefulWidgetState state;
+
+  const MyInheritedWidget({
     Key? key,
+    required this.state,
     required Widget child,
   }) : super(key: key, child: child);
 
@@ -17,8 +49,10 @@ class MyStateWidget extends InheritedWidget {
     return true;
   }
 
-  static MyStateWidget of(BuildContext context) {
-    return context.dependOnInheritedWidgetOfExactType<MyStateWidget>()!;
+  static MyStatefulWidgetState of(BuildContext context) {
+    return context
+        .dependOnInheritedWidgetOfExactType<MyInheritedWidget>()!
+        .state;
   }
 }
 
@@ -27,7 +61,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MyStateWidget(
+    return MyStatefulWidget(
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Flutter Demo',
@@ -50,17 +84,26 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
-    final a = context.dependOnInheritedWidgetOfExactType<MyStateWidget>();
-    print(MyStateWidget.of(context).userName);
-    final b = MyStateWidget.of(context).userName;
+    final a = context.dependOnInheritedWidgetOfExactType<MyInheritedWidget>();
+    // a.toString().log();
     return Scaffold(
       appBar: AppBar(
         title: const Text('State Management With Inherited Widget'),
       ),
       body: Center(
-        child: Text(
-          b,
-          style: Theme.of(context).textTheme.headline2,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              MyInheritedWidget.of(context).userName,
+              style: Theme.of(context).textTheme.headline2,
+            ),
+            ElevatedButton(
+                onPressed: () {
+                  MyInheritedWidget.of(context).updateName("Husssain");
+                },
+                child: const Text("Update Name"))
+          ],
         ),
       ),
     );
