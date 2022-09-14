@@ -1,19 +1,17 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:tech_idara_app/profile_page.dart';
+import 'package:http/http.dart' as http;
+import 'package:tech_idara_app/models/all_category_model.dart';
 import 'dart:developer' as devtools show log;
+import 'dart:convert' as convert;
 
-import 'package:tech_idara_app/state.dart';
-import 'package:tech_idara_app/user_model.dart';
-
-void main() {
-  runApp(const MyApp());
-}
+import 'package:tech_idara_app/models/login_model.dart';
 
 extension Log on Object {
   void log() => devtools.log(toString());
+}
+
+void main() {
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -21,90 +19,163 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MyStatefulWidget(
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'Flutter Demo',
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-        ),
-        home: const HomePage(),
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Flutter Demo',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
       ),
+      home: HomePage(),
     );
   }
 }
 
 class HomePage extends StatefulWidget {
-  const HomePage({Key? key}) : super(key: key);
+  HomePage({Key? key}) : super(key: key);
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  final TextEditingController _nameController = TextEditingController();
+  LoginResponse? response;
+  UserData? userData;
 
-  pickImage(BuildContext context) async {
-    final ImagePicker _picker = ImagePicker();
-    final XFile? pickedImage =
-        await _picker.pickImage(source: ImageSource.gallery);
+  List<CategoryData>? listOfCategoryData;
+  bool isLoading = false;
+  final TextEditingController _userNameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
-    var myAppState = MyInheritedWidget.of(context);
-    pickedImage?.path.toString().log();
-    myAppState.updateUser(
-      User(
-        name: _nameController.text,
-        image: File(pickedImage?.path ?? ""),
-      ),
-    );
-    _nameController.clear();
+  void login() async {
+    try {
+      setState(() {
+        isLoading = true;
+      });
+      var url = Uri.http('ishaqhassan.com:2000', '/user/signin');
+      var response = await http.post(url, body: {
+        'email': _userNameController.text,
+        'password': _passwordController.text,
+      });
+
+      var jsonString = response.body;
+      var decodedJson = convert.jsonDecode(jsonString) as Map<String, dynamic>;
+
+      var result = LoginResponse.fromJson(decodedJson);
+      "----".log();
+      result.data.toString().log();
+      setState(() {
+        userData = result.data;
+        isLoading = false;
+        _userNameController.clear();
+        _passwordController.clear();
+      });
+      await getAllCategories();
+    } catch (e) {
+      e.log();
+      "Something Went Wrong in Login API".log();
+    }
+  }
+
+  Future getAllCategories() async {
+    try {
+      setState(() {
+        // isLoading = true;
+      });
+      var url = Uri.http('ishaqhassan.com:2000', '/category');
+      var response = await http.get(url,
+          headers: {"Authorization": "Bearer ${userData?.accessToken}"});
+
+      var jsonString = response.body;
+      var decodedJson = convert.jsonDecode(jsonString) as Map<String, dynamic>;
+
+      var resultOfCategory = AllCategories.fromJson(decodedJson);
+
+      resultOfCategory.data.toString().log();
+
+      setState(() {
+        listOfCategoryData = resultOfCategory.data;
+        // isLoading = false;
+      });
+    } catch (e) {
+      e.log();
+      "Something Went Wrong in Login API".log();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final _state = MyInheritedWidget.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('State Management With Inherited Widget'),
+        title: const Text('Login Request Demo'),
       ),
       body: SingleChildScrollView(
-        child: Center(
+        child: Container(
           child: Padding(
             padding: const EdgeInsets.all(32.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: ((context) => ProfilePage())));
-                  },
-                  child: const Text("Go to Profile"),
-                ),
-                TextField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                      labelText: "Please Enter Your Name"),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    pickImage(context);
-                  },
-                  child: const Text("Please Pick Image"),
-                ),
-                Text(
-                  _state.user?.name ?? "",
-                  style: Theme.of(context).textTheme.headline2,
-                ),
-                if (_state.user != null)
-                  Image.file(
-                    MyInheritedWidget.of(context).user!.image,
-                    height: 200,
-                    width: 200,
-                  )
-              ],
+            child: Center(
+              child: Column(
+                children: [
+                  if (userData == null) ...[
+                    TextField(
+                      controller: _userNameController,
+                      decoration:
+                          const InputDecoration(labelText: "Enter User Name"),
+                    ),
+                    TextField(
+                      controller: _passwordController,
+                      decoration:
+                          const InputDecoration(labelText: "Enter Password"),
+                    ),
+                    ElevatedButton(
+                        onPressed: login, child: const Text("Login")),
+                  ],
+                  const SizedBox(
+                    height: 20,
+                  ),
+                  if (isLoading)
+                    const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  if (!isLoading)
+                    Column(
+                      children: [
+                        if (userData?.email != null) ...[
+                          const Text(
+                            "These Are Your Login Credentials...",
+                            style: TextStyle(fontSize: 18),
+                          ),
+                          const SizedBox(
+                            height: 20,
+                          ),
+                          Text("Email: ${userData!.email}"),
+                          Text("Password: ${userData!.password}"),
+                          Text("Access Token: ${userData!.accessToken}"),
+                          ElevatedButton(
+                            onPressed: getAllCategories,
+                            child: const Text("Show Categories"),
+                          ),
+                        ],
+                      ],
+                    ),
+                  if (listOfCategoryData != null)
+                    Container(
+                      height: 400,
+                      child: ListView.builder(
+                        itemCount: listOfCategoryData?.length,
+                        itemBuilder: (context, index) {
+                          return ListTile(
+                            leading: Image.network(
+                              listOfCategoryData?[index].icon ?? "",
+                            ),
+                            title: Text(
+                                listOfCategoryData?[index].title.toString() ??
+                                    ""),
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ),
