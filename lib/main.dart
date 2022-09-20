@@ -1,10 +1,14 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:tech_idara_app/models/all_category_model.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tech_idara_app/login_page.dart';
 import 'dart:developer' as devtools show log;
 import 'dart:convert' as convert;
 
 import 'package:tech_idara_app/models/login_model.dart';
+
+import 'main_page.dart';
 
 extension Log on Object {
   void log() => devtools.log(toString());
@@ -25,161 +29,100 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: HomePage(),
+      home: HomeScreen(),
     );
   }
 }
 
-class HomePage extends StatefulWidget {
-  HomePage({Key? key}) : super(key: key);
+class HomeScreen extends StatefulWidget {
+  HomeScreen({Key? key}) : super(key: key);
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomePageState extends State<HomePage> {
-  LoginResponse? response;
-  UserData? userData;
+class _HomeScreenState extends State<HomeScreen> {
+  UserData? data;
 
-  List<CategoryData>? listOfCategoryData;
-  bool isLoading = false;
-  final TextEditingController _userNameController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-
-  void login() async {
-    try {
-      setState(() {
-        isLoading = true;
-      });
-      var url = Uri.http('ishaqhassan.com:2000', '/user/signin');
-      var response = await http.post(url, body: {
-        'email': _userNameController.text,
-        'password': _passwordController.text,
-      });
-
-      var jsonString = response.body;
-      var decodedJson = convert.jsonDecode(jsonString) as Map<String, dynamic>;
-
-      var result = LoginResponse.fromJson(decodedJson);
-      "----".log();
-      result.data.toString().log();
-      setState(() {
-        userData = result.data;
-        isLoading = false;
-        _userNameController.clear();
-        _passwordController.clear();
-      });
-      await getAllCategories();
-    } catch (e) {
-      e.log();
-      "Something Went Wrong in Login API".log();
-    }
+  @override
+  void initState() {
+    loadFromLocal();
+    super.initState();
   }
 
-  Future getAllCategories() async {
-    try {
-      setState(() {
-        // isLoading = true;
-      });
-      var url = Uri.http('ishaqhassan.com:2000', '/category');
-      var response = await http.get(url,
-          headers: {"Authorization": "Bearer ${userData?.accessToken}"});
+  loadFromLocal() async {
+    // Saving object into shared preferences
+    final prefs = await SharedPreferences.getInstance();
 
-      var jsonString = response.body;
-      var decodedJson = convert.jsonDecode(jsonString) as Map<String, dynamic>;
-
-      var resultOfCategory = AllCategories.fromJson(decodedJson);
-
-      resultOfCategory.data.toString().log();
+    // Fetching Data
+    if (prefs.containsKey("CREDENTIALS")) {
+      String? getdata = prefs.getString("CREDENTIALS");
+      final decodedData = json.decode(getdata ?? "");
 
       setState(() {
-        listOfCategoryData = resultOfCategory.data;
-        // isLoading = false;
+        data = UserData.fromJson(decodedData);
       });
-    } catch (e) {
-      e.log();
-      "Something Went Wrong in Login API".log();
     }
+    print("loaded");
+
+    // Remove data for the 'counter' key.
+    // final success = await prefs.remove('CREDENTIALS');
+    // print("Deleted...");
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Login Request Demo'),
-      ),
-      body: SingleChildScrollView(
-        child: Container(
-          child: Padding(
-            padding: const EdgeInsets.all(32.0),
-            child: Center(
-              child: Column(
-                children: [
-                  if (userData == null) ...[
-                    TextField(
-                      controller: _userNameController,
-                      decoration:
-                          const InputDecoration(labelText: "Enter User Name"),
-                    ),
-                    TextField(
-                      controller: _passwordController,
-                      decoration:
-                          const InputDecoration(labelText: "Enter Password"),
-                    ),
-                    ElevatedButton(
-                        onPressed: login, child: const Text("Login")),
-                  ],
-                  const SizedBox(
-                    height: 20,
-                  ),
-                  if (isLoading)
-                    const Center(
-                      child: CircularProgressIndicator(),
-                    ),
-                  if (!isLoading)
-                    Column(
-                      children: [
-                        if (userData?.email != null) ...[
-                          const Text(
-                            "These Are Your Login Credentials...",
-                            style: TextStyle(fontSize: 18),
-                          ),
-                          const SizedBox(
-                            height: 20,
-                          ),
-                          Text("Email: ${userData!.email}"),
-                          Text("Password: ${userData!.password}"),
-                          Text("Access Token: ${userData!.accessToken}"),
-                          ElevatedButton(
-                            onPressed: getAllCategories,
-                            child: const Text("Show Categories"),
-                          ),
-                        ],
-                      ],
-                    ),
-                  if (listOfCategoryData != null)
-                    Container(
-                      height: 400,
-                      child: ListView.builder(
-                        itemCount: listOfCategoryData?.length,
-                        itemBuilder: (context, index) {
-                          return ListTile(
-                            leading: Image.network(
-                              listOfCategoryData?[index].icon ?? "",
-                            ),
-                            title: Text(
-                                listOfCategoryData?[index].title.toString() ??
-                                    ""),
-                          );
-                        },
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
+      body: (data?.accessToken == null) ? const LoginPage() : MainPage(),
     );
   }
 }
+
+
+
+// void saveDataLocally(BuildContext context) async {
+// var gettingBool = Form.of(context)?.validate();
+
+// if (gettingBool == true) {
+//   final prefs = await SharedPreferences.getInstance();
+//   // Save an String value to 'action' key.
+//   await prefs.setString('name', nameController.text);
+
+//     String jsonResponse = '''
+//       {
+//           "message": "Success",
+//           "statusCode": 200,
+//           "data": {
+//               "id": 5,
+//               "email": "ishaq@ishaqhassan.com",
+//               "phone": "123",
+//               "password": "123456",
+//               "accessToken": "3a38a061-8e1f-45fb-a892-c8af38c8b00f"
+//           }
+//       }
+//     ''';
+
+//     var result = UserLoginModel.fromJson(jsonDecode(jsonResponse));
+//     // Save an String value to 'action' key.
+//     await prefs.setString(
+//       'CREDENTIALS',
+//       jsonEncode(result.data?.toJson()),
+//     );
+//   }
+// }
+
+// @override
+// void initState() {
+//   loadFromLocal();
+//   super.initState();
+// }
+
+// loadFromLocal() async {
+//   final prefs = await SharedPreferences.getInstance();
+//   if (prefs.containsKey("CREDENTIALS")) {
+//     String? data = prefs.getString("CREDENTIALS");
+//     UserData result = UserData.fromJson(jsonDecode(data ?? ""));
+//     nameController.text = result.accessToken ?? "";
+//   }
+// }
+
